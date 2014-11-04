@@ -3,14 +3,25 @@ Todos.TodoController = Ember.ObjectController.extend({
     editTodo: function () {
       this.set('isEditing', true);
     },
-    acceptChanges: function () {
-      this.set('isEditing', false);
+    doneEditing: function () {
+      var bufferedTitle = this.get('bufferedTitle').trim();
 
-      if (Ember.isEmpty(this.get('model.title'))) {
-        this.send('removeTodo');
+      if (Ember.isEmpty(bufferedTitle)) {
+        // The `doneEditing` action gets sent twice when the user hits
+        // enter (once via 'insert-newline' and once via 'focus-out').
+        //
+        // We debounce our call to 'removeTodo' so that it only gets
+        // made once.
+        Ember.run.debounce(this, 'removeTodo', 0);
       } else {
-        this.get('model').save();
+        var todo = this.get('model');
+        todo.set('title', bufferedTitle);
+        todo.save();
       }
+
+      // Re-set our newly edited title to persist its trimmed version
+      this.set('bufferedTitle', bufferedTitle);
+      this.set('isEditing', false);
     },
     removeTodo: function () {
       var todo = this.get('model');
